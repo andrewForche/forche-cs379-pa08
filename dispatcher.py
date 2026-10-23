@@ -31,43 +31,39 @@ class ClassDecl:
 
 class VTable:
     def __init__(self, entries: Dict[str, MethodLike], owning_class_name: str = "?") -> None:
-        """`owning_class_name` is just for error messages -- store it alongside entries."""
-        # TODO: store entries and owning_class_name.
-        raise NotImplementedError
+        self.entries = dict(entries)
+        self.owning_class_name = owning_class_name
 
     def resolve(self, method_name: str) -> MethodLike:
-        """
-        Return the method object bound to `method_name`. Raise a clear
-        error (e.g. AttributeError) whose message names BOTH the
-        owning class and the missing method if it doesn't exist.
-        """
-        # TODO
-        raise NotImplementedError
+        if method_name not in self.entries:
+            raise AttributeError(
+                f"Class '{self.owning_class_name}' "
+                f"has no method '{method_name}'."
+            )
+
+        return self.entries[method_name]
 
 
 def build_vtable(class_node: ClassDecl, parent_vtable: Optional[VTable] = None) -> VTable:
-    """
-    Start from a copy of parent_vtable's entries (inherited methods),
-    then overwrite only the slots class_node itself redeclares. A
-    method class_node does NOT override must resolve to the EXACT SAME
-    method object the parent uses -- don't wrap or duplicate it.
-    Pass class_node.name as the new VTable's owning_class_name.
-    """
-    # TODO
-    raise NotImplementedError
+    if parent_vtable is None:
+        entries = {}
+    else:
+        entries = parent_vtable.entries.copy()
+
+    entries.update(class_node.methods)
+
+    return VTable(
+        entries,
+        owning_class_name=class_node.name
+    )
 
 
 class USIObject:
     def __init__(self, class_descriptor: VTable, fields: dict) -> None:
-        # TODO: store both. class_descriptor is this object's ACTUAL runtime VTable.
-        raise NotImplementedError
+        self.class_descriptor = class_descriptor
+        self.fields = fields
 
 
 def dispatch(obj: USIObject, method_name: str, args: list, caller_env) -> object:
-    """
-    Resolve method_name through obj's OWN VTable (never a declared/
-    static type), then call the resolved method via PA 7's interface:
-    resolved_method.call([obj, *args], caller_env).
-    """
-    # TODO
-    raise NotImplementedError
+    resolved_method = obj.class_descriptor.resolve(method_name)
+    return resolved_method.call([obj, *args], caller_env)
